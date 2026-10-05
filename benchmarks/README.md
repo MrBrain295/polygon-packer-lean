@@ -21,3 +21,7 @@ Summarize final valid objectives with:
 ```sh
 python3 python/analyze_benchmark.py benchmarks/results.json
 ```
+
+The Python runner supervises each Lean worker process. If a search does not
+return before its budget plus a small startup grace period, the process is
+terminated and the run is recorded as `timed_out: true` and `valid: false`.

@@ -171,30 +171,33 @@ def penaltyGrad (P : Problem) (S : Float) (x : FloatArray) : Float × FloatArray
   -- pairwise overlaps (separating axis test)
   for i in [0:n] do
     for j in [i+1:n] do
-      let mut collision := true
-      let mut minOv := 1.0e20
-      let mut act : Active := {}
-      for ax in [0:2 * m] do
-        let (own, idx) := if ax < m then (i, ax) else (j, ax - m)
-        let axx := axes[2 * (own * m + idx)]!
-        let axy := axes[2 * (own * m + idx) + 1]!
-        let (min1, amin1, max1, amax1) := project m verts i axx axy
-        let (min2, amin2, max2, amax2) := project m verts j axx axy
-        let (hiVal, hiOwn, hiV) := if max1 ≤ max2 then (max1, i, amax1) else (max2, j, amax2)
-        let (loVal, loOwn, loV) := if min1 ≥ min2 then (min1, i, amin1) else (min2, j, amin2)
-        let ov := hiVal - loVal
-        if ov ≤ 0.0 then
-          collision := false
-          break
-        if ov < minOv then
-          minOv := ov
-          act := { axOwner := own, axIdx := idx, hiOwner := hiOwn, hiVert := hiV,
-                   loOwner := loOwn, loVert := loV }
-      if collision then
-        pen := pen + minOv * minOv
-        let t := 2.0 * minOv
-        g := addDotGrad m x verts axes g act.hiOwner act.hiVert act.axOwner act.axIdx t
-        g := addDotGrad m x verts axes g act.loOwner act.loVert act.axOwner act.axIdx (-t)
+      let dx := x[3 * i]! - x[3 * j]!
+      let dy := x[3 * i + 1]! - x[3 * j + 1]!
+      if dx * dx + dy * dy < 4.0 then
+        let mut collision := true
+        let mut minOv := 1.0e20
+        let mut act : Active := {}
+        for ax in [0:2 * m] do
+          let (own, idx) := if ax < m then (i, ax) else (j, ax - m)
+          let axx := axes[2 * (own * m + idx)]!
+          let axy := axes[2 * (own * m + idx) + 1]!
+          let (min1, amin1, max1, amax1) := project m verts i axx axy
+          let (min2, amin2, max2, amax2) := project m verts j axx axy
+          let (hiVal, hiOwn, hiV) := if max1 ≤ max2 then (max1, i, amax1) else (max2, j, amax2)
+          let (loVal, loOwn, loV) := if min1 ≥ min2 then (min1, i, amin1) else (min2, j, amin2)
+          let ov := hiVal - loVal
+          if ov ≤ 0.0 then
+            collision := false
+            break
+          if ov < minOv then
+            minOv := ov
+            act := { axOwner := own, axIdx := idx, hiOwner := hiOwn, hiVert := hiV,
+                     loOwner := loOwn, loVert := loV }
+        if collision then
+          pen := pen + minOv * minOv
+          let t := 2.0 * minOv
+          g := addDotGrad m x verts axes g act.hiOwner act.hiVert act.axOwner act.axIdx t
+          g := addDotGrad m x verts axes g act.loOwner act.loVert act.axOwner act.axIdx (-t)
   return (pen, g)
 
 /-- The penalty alone. -/

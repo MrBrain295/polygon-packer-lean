@@ -4,6 +4,7 @@
 import argparse
 import json
 import subprocess
+import time
 from pathlib import Path
 
 
@@ -40,7 +41,25 @@ def main() -> None:
                 str(problem["nsi"]), str(problem["nsc"]), str(milliseconds), str(seed),
                 str(certificate), str(result),
             ]
-            subprocess.run(command, cwd=ROOT, check=True)
+            timeout = max(args.seconds, 0.1) + 0.1
+            started = time.monotonic()
+            try:
+                subprocess.run(command, cwd=ROOT, check=True, timeout=timeout)
+            except subprocess.TimeoutExpired:
+                result.write_text(json.dumps({
+                    "problem": problem["name"],
+                    "seed": seed,
+                    "time_limit_ms": milliseconds,
+                    "elapsed_ms": round((time.monotonic() - started) * 1000),
+                    "attempts": 0,
+                    "best_objective": None,
+                    "best_seed": None,
+                    "time_to_best_ms": None,
+                    "valid": False,
+                    "timed_out": True,
+                    "curve": [],
+                    "certificate": None,
+                }, indent=2) + "\n")
             records.append(json.loads(result.read_text()))
 
     output = {

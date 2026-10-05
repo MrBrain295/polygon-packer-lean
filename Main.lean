@@ -13,7 +13,7 @@ lake exe polygon_packer [n] [nsi] [nsc] [--attempts A] [--tolerance T]
 ```
 
 The best packing is written as a JSON certificate (by default to
-`{n}_{nsi}_in_{nsc}.json`, or `{n}_{nsi}_in_{nsc}_(k).json` if that exists);
+`certificates/{n}_{nsi}_in_{nsc}.json`, or `certificates/{n}_{nsi}_in_{nsc}_(k).json` if that exists);
 render it with `python3 python/render_certificate.py FILE`.
 -/
 
@@ -91,7 +91,8 @@ public def main (argv : List String) : IO UInt32 := do
   IO.println s!"Final side length (checked exactly): {cert.side.toString}"
   let file ← match args.output with
     | some f => pure f
-    | none => freshName s!"{args.n}_{args.nsi}_in_{args.nsc}"
+    | none => freshName s!"certificates/{args.n}_{args.nsi}_in_{args.nsc}"
+  IO.FS.createDirAll "certificates"
   IO.FS.writeFile file (cert.toJson args.attempts seed)
   IO.println s!"Certificate written to {file}"
   return 0

@@ -1,0 +1,20 @@
+name = "polygon_packer"
+defaultTargets = ["PolygonPacker", "polygon_packer", "PolygonPackerProofs"]
+
+[[require]]
+name = "mathlib"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.34.1"
+
+# The packing search, the exact certificate checker and `certifyBest`.
+[[lean_lib]]
+name = "PolygonPacker"
+
+# `lake exe polygon_packer n nsi nsc ...`
+[[lean_exe]]
+name = "polygon_packer"
+root = "Main"
+
+# Proofs (using Mathlib) that every certificate the program writes is a valid packing.
+[[lean_lib]]
+name = "PolygonPackerProofs"

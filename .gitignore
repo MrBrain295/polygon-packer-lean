@@ -1,2 +1,7 @@
 .lake/*
 /certificates/
+/benchmarks/certificates/
+/benchmarks/results/
+/benchmarks/results.json
+/benchmarks/baseline.json
+/python/__pycache__/

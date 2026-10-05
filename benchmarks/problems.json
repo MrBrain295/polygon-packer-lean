@@ -1,0 +1,10 @@
+[
+  {"name": "tri_square_5", "n": 5, "nsi": 3, "nsc": 4},
+  {"name": "hex_square_10", "n": 10, "nsi": 6, "nsc": 4},
+  {"name": "tri_square_25", "n": 25, "nsi": 3, "nsc": 4},
+  {"name": "square_square_10", "n": 10, "nsi": 4, "nsc": 4},
+  {"name": "square_square_25", "n": 25, "nsi": 4, "nsc": 4},
+  {"name": "pent_square_10", "n": 10, "nsi": 5, "nsc": 4},
+  {"name": "tri_hexagon_20", "n": 20, "nsi": 3, "nsc": 6},
+  {"name": "pent_decagon_20", "n": 20, "nsi": 5, "nsc": 10}
+]

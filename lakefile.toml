@@ -15,6 +15,11 @@ name = "PolygonPacker"
 name = "polygon_packer"
 root = "Main"
 
+# Time-based anytime benchmark worker.
+[[lean_exe]]
+name = "timed_packer"
+root = "TimedMain"
+
 # Proofs (using Mathlib) that every certificate the program writes is a valid packing.
 [[lean_lib]]
 name = "PolygonPackerProofs"

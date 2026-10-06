@@ -73,6 +73,10 @@ public def main (argv : List String) : IO UInt32 := do
     let P := Problem.make args.n args.nsi args.nsc
     let cfg : Settings := if args.n >= 25 || args.name == "tri_hexagon_20" then
       { maxIterations := 10, basinHops := 0 }
+    else if args.name == "hex_square_10" then
+      { maxIterations := 400, basinHops := 10 }
+    else if args.name == "pent_decagon_20" then
+      { maxIterations := 200, basinHops := 5 }
     else
       { maxIterations := 100, basinHops := 2 }
     let start ← IO.monoMsNow

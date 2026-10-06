@@ -249,10 +249,13 @@ def pieceBoxes (c : Cert) (p : Piece) : List Box :=
 
 /-- The exact certificate checker. -/
 def check (c : Cert) : Bool :=
+  let container := c.containerBoxes
+  let items := c.pieces.map fun p => (c.pieceBoxes p, p.centre)
   decide (3 ≤ c.nsi) && decide (3 ≤ c.nsc) && decide (c.pieces.length = c.n) &&
   decide (0 < c.side.toRat) && decide (0 < (sinPiDiv c.nsc).lo) &&
-  (c.pieces.all fun p => (c.pieceBoxes p).all (inHull c.containerBoxes)) &&
-  allPairs (fun p q => separated (c.pieceBoxes p) (c.pieceBoxes q) p.centre q.centre) c.pieces
+  (items.all fun (boxes, _) => boxes.all (inHull container)) &&
+  allPairs (fun (boxes, centre) (otherBoxes, otherCentre) =>
+    separated boxes otherBoxes centre otherCentre) items
 
 end Cert
 

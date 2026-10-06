@@ -22,6 +22,18 @@ Summarize final valid objectives with:
 python3 python/analyze_benchmark.py benchmarks/results.json
 ```
 
-The Python runner supervises each Lean worker process. If a search does not
-return before its budget plus a small startup grace period, the process is
-terminated and the run is recorded as `timed_out: true` and `valid: false`.
+To compare a run with a saved baseline, pass the baseline explicitly:
+
+```sh
+python3 python/analyze_benchmark.py benchmarks/results.json --baseline benchmarks/baseline.json
+```
+
+The `total` is the sum of every test packing's `best_objective`. The run wins
+only when its total is strictly smaller than the baseline total. If either
+benchmark contains an invalid or missing run, the total and winner are marked
+unavailable.
+
+The Python runner supervises each Lean worker process. If a search and its exact
+certificate check do not return before the budget plus a 60-second grace
+period, the process is terminated and the run is recorded as `timed_out: true`
+and `valid: false`.

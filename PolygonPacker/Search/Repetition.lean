@@ -23,6 +23,10 @@ structure Settings where
   tolerance : Float := 1e-8
   /-- the theoretical final shrink step -/
   finalStep : Float := 0.0001
+  /-- maximum iterations for each local minimisation -/
+  maxIterations : Nat := 15000
+  /-- maximum basin-hopping rounds for each failed local minimisation -/
+  basinHops : Nat := 50
 deriving Inhabited
 
 /-- `n` equally spaced points from `lo` to `hi` inclusive (`numpy.linspace`). -/
@@ -73,7 +77,7 @@ def repetition (P : Problem) (cfg : Settings) (seed : Nat) : Float × FloatArray
   repeat
     let S := dynS
     let f := penaltyGrad P S
-    let localMin := fun (y : FloatArray) => lbfgs f y
+    let localMin := fun (y : FloatArray) => lbfgs f y cfg.maxIterations
     let res := localMin x
     let multiplier :=
       1.0 - cfg.finalStep - (dynS - lowestS) * (0.01 - cfg.finalStep) / range
@@ -83,7 +87,7 @@ def repetition (P : Problem) (cfg : Settings) (seed : Nat) : Float × FloatArray
       x := Vec.scale multiplier res.x
       dynS := dynS * multiplier
     else
-      let (bh, r) := basinhopping localMin x rng
+      let (bh, r) := basinhopping localMin x rng cfg.basinHops
       rng := r
       if bh.fx < cfg.tolerance then
         lastX := bh.x

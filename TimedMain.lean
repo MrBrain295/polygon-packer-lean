@@ -71,7 +71,7 @@ public def main (argv : List String) : IO UInt32 := do
   | .error e => IO.eprintln e; return 1
   | .ok args =>
     let P := Problem.make args.n args.nsi args.nsc
-    let cfg : Settings := {}
+    let cfg : Settings := { maxIterations := 10, basinHops := 0 }
     let start ← IO.monoMsNow
     let (results, curve, _, elapsed) ← searchUntil P cfg args.seed args.milliseconds start [] [] none
     let resultList := results.reverse

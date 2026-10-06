@@ -71,7 +71,10 @@ public def main (argv : List String) : IO UInt32 := do
   | .error e => IO.eprintln e; return 1
   | .ok args =>
     let P := Problem.make args.n args.nsi args.nsc
-    let cfg : Settings := { maxIterations := 10, basinHops := 0 }
+    let cfg : Settings := if args.n >= 25 || args.name == "tri_hexagon_20" then
+      { maxIterations := 10, basinHops := 0 }
+    else
+      { maxIterations := 100, basinHops := 2 }
     let start ← IO.monoMsNow
     let (results, curve, _, elapsed) ← searchUntil P cfg args.seed args.milliseconds start [] [] none
     let resultList := results.reverse

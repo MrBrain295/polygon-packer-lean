@@ -176,13 +176,18 @@ theorem Cert.check_sound (c : Cert) (h : c.check = true) : c.Valid := by
     apply convexHull_min _ (convex_convexHull ℝ _)
     intro z hz
     obtain ⟨B, hB, hzB⟩ := pieceBoxes_cover c p z hz
-    exact inHull_sound (containerBoxes_cover c hsin) (hin p hp B hB) hzB
+    exact inHull_sound (containerBoxes_cover c hsin)
+      (hin (c.pieceBoxes p, p.centre)
+        (List.mem_map.mpr ⟨p, hp, rfl⟩) B hB) hzB
   · have hpw := allPairs_sound hpairs
+    have hpw' : c.pieces.Pairwise (fun p q =>
+        separated (c.pieceBoxes p) (c.pieceBoxes q) p.centre q.centre = true) := by
+      simpa using (List.pairwise_map.mp hpw)
     have key : ∀ i j : Fin c.pieces.length, i < j →
         Disjoint (interior ((c.pieces.get i).toSet c.nsi))
           (interior ((c.pieces.get j).toSet c.nsi)) := by
       intro i j hij
-      have := List.pairwise_iff_get.mp hpw i j hij
+      have := List.pairwise_iff_get.mp hpw' i j hij
       exact separated_sound this (pieceBoxes_cover c _) (pieceBoxes_cover c _)
     intro i j hij
     rcases lt_or_gt_of_ne hij with hlt | hlt

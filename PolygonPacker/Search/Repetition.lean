@@ -27,6 +27,10 @@ structure Settings where
   maxIterations : Nat := 15000
   /-- maximum basin-hopping rounds for each failed local minimisation -/
   basinHops : Nat := 50
+  /-- relative container shrink applied after each feasible minimisation -/
+  shrinkStep : Float := 0.01
+  /-- fresh starts to try when local and basin-hopping minimisation fail -/
+  restarts : Nat := 0
 deriving Inhabited
 
 /-- `n` equally spaced points from `lo` to `hi` inclusive (`numpy.linspace`). -/
@@ -58,6 +62,13 @@ def initialState (P : Problem) (S : Float) (rng : Rng) : FloatArray × Rng := Id
       x := x.set! (3 * i + 2) v
   return (x, rng)
 
+def scalePositions (factor : Float) (x : FloatArray) : FloatArray := Id.run do
+  let mut y := x
+  for i in [0:x.size / 3] do
+    y := y.set! (3 * i) (factor * x[3 * i]!)
+    y := y.set! (3 * i + 1) (factor * x[3 * i + 1]!)
+  return y
+
 /-- One attempt with the given seed: returns the smallest feasible container
 circumradius found and the corresponding configuration. -/
 def repetition (P : Problem) (cfg : Settings) (seed : Nat) : Float × FloatArray := Id.run do
@@ -66,9 +77,6 @@ def repetition (P : Problem) (cfg : Settings) (seed : Nat) : Float × FloatArray
   let (u, r) := rng.uniform01
   rng := r
   let mut dynS := sqrtN * (2.0 + u * 2.0)
-  let initialS := dynS
-  let lowestS := sqrtN
-  let range := initialS - lowestS
   let (x0, r) := initialState P dynS rng
   rng := r
   let mut x := x0
@@ -79,12 +87,11 @@ def repetition (P : Problem) (cfg : Settings) (seed : Nat) : Float × FloatArray
     let f := penaltyGrad P S
     let localMin := fun (y : FloatArray) => lbfgs f y cfg.maxIterations
     let res := localMin x
-    let multiplier :=
-      1.0 - cfg.finalStep - (dynS - lowestS) * (0.01 - cfg.finalStep) / range
+    let multiplier := 1.0 - cfg.shrinkStep
     if res.fx < cfg.tolerance then
       lastX := res.x
       lastS := dynS
-      x := Vec.scale multiplier res.x
+      x := scalePositions multiplier res.x
       dynS := dynS * multiplier
     else
       let (bh, r) := basinhopping localMin x rng cfg.basinHops
@@ -92,10 +99,24 @@ def repetition (P : Problem) (cfg : Settings) (seed : Nat) : Float × FloatArray
       if bh.fx < cfg.tolerance then
         lastX := bh.x
         lastS := dynS
-        x := Vec.scale multiplier bh.x
+        x := scalePositions multiplier bh.x
         dynS := dynS * multiplier
       else
-        break
+        let mut recovered : Option FloatArray := none
+        for _ in [0:cfg.restarts] do
+          let (restart, r) := initialState P dynS rng
+          rng := r
+          let trial := localMin restart
+          if trial.fx < cfg.tolerance then
+            recovered := some trial.x
+            break
+        match recovered with
+        | some feasible =>
+          lastX := feasible
+          lastS := dynS
+          x := scalePositions multiplier feasible
+          dynS := dynS * multiplier
+        | none => break
   return (lastS, lastX)
 
 end PolygonPacker

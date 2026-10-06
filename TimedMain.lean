@@ -72,13 +72,13 @@ public def main (argv : List String) : IO UInt32 := do
   | .ok args =>
     let P := Problem.make args.n args.nsi args.nsc
     let cfg : Settings := if args.n >= 25 || args.name == "tri_hexagon_20" then
-      { maxIterations := 10, basinHops := 0 }
+      { maxIterations := 10, basinHops := 0, shrinkStep := 0.02, restarts := 1 }
     else if args.name == "hex_square_10" then
-      { maxIterations := 400, basinHops := 10 }
+      { maxIterations := 400, basinHops := 10, shrinkStep := 0.02, restarts := 1 }
     else if args.name == "pent_decagon_20" then
-      { maxIterations := 200, basinHops := 5 }
+      { maxIterations := 200, basinHops := 5, shrinkStep := 0.02, restarts := 1 }
     else
-      { maxIterations := 100, basinHops := 2 }
+      { maxIterations := 100, basinHops := 2, shrinkStep := 0.02, restarts := 1 }
     let start ← IO.monoMsNow
     let (results, curve, _, elapsed) ← searchUntil P cfg args.seed args.milliseconds start [] [] none
     let resultList := results.reverse

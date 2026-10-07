@@ -103,40 +103,19 @@ def basinhopping (localMin : FloatArray → MinResult) (x0 : FloatArray) (rng : 
   let start := localMin x0
   let mut cur := start
   let mut best := start
-  let mut posStep := stepsize
-  let mut acceptedInWindow := 0
-  for iter in [0:niter] do
+  for _ in [0:niter] do
     let mut xt := cur.x
-    if xt.size % 3 == 0 then
-      for i in [0:xt.size / 3] do
-        let (dx, r) := rng.uniform (-posStep) posStep
-        rng := r
-        let (dy, r) := rng.uniform (-posStep) posStep
-        rng := r
-        let (da, r) := rng.uniform (-4.0 * posStep) (4.0 * posStep)
-        rng := r
-        xt := xt.set! (3 * i) (xt[3 * i]! + dx)
-        xt := xt.set! (3 * i + 1) (xt[3 * i + 1]! + dy)
-        xt := xt.set! (3 * i + 2) (xt[3 * i + 2]! + da)
-    else
-      for k in [0:xt.size] do
-        let (u, r) := rng.uniform (-posStep) posStep
-        rng := r
-        xt := xt.set! k (xt[k]! + u)
+    for k in [0:xt.size] do
+      let (u, r) := rng.uniform (-stepsize) stepsize
+      rng := r
+      xt := xt.set! k (xt[k]! + u)
     let res := localMin xt
     let (u, r) := rng.uniform01
     rng := r
     let w := Float.exp (min 0.0 (-(res.fx - cur.fx) / temperature))
     if w ≥ u then
       cur := res
-      acceptedInWindow := acceptedInWindow + 1
       if res.fx < best.fx then best := res
-    if (iter + 1) % 10 == 0 then
-      if acceptedInWindow ≤ 2 then
-        posStep := max (stepsize * 0.1) (posStep * 0.7)
-      else if acceptedInWindow ≥ 8 then
-        posStep := min (stepsize * 5.0) (posStep * 1.3)
-      acceptedInWindow := 0
   return (best, rng)
 
 end PolygonPacker

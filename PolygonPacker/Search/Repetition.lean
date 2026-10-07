@@ -80,43 +80,60 @@ def repetition (P : Problem) (cfg : Settings) (seed : Nat) : Float × FloatArray
   let (x0, r) := initialState P dynS rng
   rng := r
   let mut x := x0
-  let mut lastX := x0
-  let mut lastS := dynS
+  let mut best : Option (Float × FloatArray) := none
+  let localMin := fun (S : Float) (y : FloatArray) =>
+    lbfgs (penaltyGrad P S) y (maxIter := cfg.maxIterations)
+  let searchAt := fun (S : Float) (guess : FloatArray) (rng : Rng) =>
+    let res := localMin S guess
+    if res.fx < cfg.tolerance then
+      (some res.x, rng)
+    else
+      let (bh, rng) := basinhopping (localMin S) guess rng cfg.basinHops
+      if bh.fx < cfg.tolerance then
+        (some bh.x, rng)
+      else
+        Id.run do
+          let mut rng := rng
+          let mut recovered : Option FloatArray := none
+          for _ in [0:cfg.restarts] do
+            let (restart, r) := initialState P S rng
+            rng := r
+            let trial := localMin S restart
+            if trial.fx < cfg.tolerance then
+              recovered := some trial.x
+              break
+          return (recovered, rng)
   repeat
     let S := dynS
-    let f := penaltyGrad P S
-    let localMin := fun (y : FloatArray) => lbfgs f y cfg.maxIterations
-    let res := localMin x
     let multiplier := 1.0 - cfg.shrinkStep
-    if res.fx < cfg.tolerance then
-      lastX := res.x
-      lastS := dynS
-      x := scalePositions multiplier res.x
-      dynS := dynS * multiplier
-    else
-      let (bh, r) := basinhopping localMin x rng cfg.basinHops
-      rng := r
-      if bh.fx < cfg.tolerance then
-        lastX := bh.x
-        lastS := dynS
-        x := scalePositions multiplier bh.x
-        dynS := dynS * multiplier
-      else
-        let mut recovered : Option FloatArray := none
-        for _ in [0:cfg.restarts] do
-          let (restart, r) := initialState P dynS rng
-          rng := r
-          let trial := localMin restart
-          if trial.fx < cfg.tolerance then
-            recovered := some trial.x
-            break
-        match recovered with
-        | some feasible =>
-          lastX := feasible
-          lastS := dynS
-          x := scalePositions multiplier feasible
-          dynS := dynS * multiplier
-        | none => break
-  return (lastS, lastX)
+    let (feasible, r) := searchAt S x rng
+    rng := r
+    match feasible with
+    | some feasible =>
+      best := some (S, feasible)
+      x := scalePositions multiplier feasible
+      dynS := S * multiplier
+    | none =>
+      if cfg.finalStep > 0.0 then
+        match best with
+        | some (bestS, bestX) =>
+          let mut hiS := bestS
+          let mut hiX := bestX
+          let mut loS := S
+          while (hiS - loS) / (max hiS 1.0) > cfg.finalStep do
+            let midS := (hiS + loS) / 2.0
+            let midGuess := scalePositions (midS / hiS) hiX
+            let (midFeasible, r) := searchAt midS midGuess rng
+            rng := r
+            match midFeasible with
+            | some midX =>
+              hiS := midS
+              hiX := midX
+            | none =>
+              loS := midS
+          best := some (hiS, hiX)
+        | none => pure ()
+      break
+  return best.getD (dynS, x0)
 
 end PolygonPacker

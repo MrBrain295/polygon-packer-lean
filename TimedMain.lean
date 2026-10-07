@@ -44,6 +44,15 @@ partial def searchUntil (P : Problem) (cfg : Settings) (seed limit start : Nat)
   if elapsed >= limit then
     return (results, curve, best, elapsed)
   let currentSeed := seed + results.length
+  let cfg :=
+    if results.length % 8 == 0 then
+      { cfg with
+          maxIterations := max cfg.maxIterations 200
+          basinHops := max cfg.basinHops 8
+          restarts := max cfg.restarts 2
+          shrinkStep := cfg.shrinkStep * 0.5
+      }
+    else cfg
   let (side, x) := repetition P cfg currentSeed
   let attemptEnd ← IO.monoMsNow
   let elapsed := attemptEnd - start

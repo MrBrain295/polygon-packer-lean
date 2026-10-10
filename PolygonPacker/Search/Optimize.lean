@@ -95,6 +95,38 @@ def lbfgs (f : FloatArray → Float × FloatArray) (x0 : FloatArray)
     if Vec.maxAbs g ≤ gtol then break
   return { x, fx }
 
+def gradientDescent (f : FloatArray → Float × FloatArray) (x0 : FloatArray)
+    (maxIter : Nat := 400) (initialStep : Float := 0.25) : MinResult := Id.run do
+  let (f0, g0) := f x0
+  let mut x := x0
+  let mut fx := f0
+  let mut g := g0
+  let mut step := initialStep
+  for _ in [0:maxIter] do
+    if Vec.maxAbs g ≤ 1e-9 then break
+    let direction := Vec.scale (-1.0) g
+    let mut trialStep := step
+    let mut accepted := false
+    let mut xn := x
+    let mut fn := fx
+    let mut gn := g
+    for _ in [0:18] do
+      let candidate := Vec.axpy trialStep direction x
+      let (candidateF, candidateG) := f candidate
+      if candidateF < fx then
+        xn := candidate
+        fn := candidateF
+        gn := candidateG
+        accepted := true
+        break
+      trialStep := trialStep * 0.5
+    if !accepted then break
+    x := xn
+    fx := fn
+    g := gn
+    step := min 1.0 (trialStep * 1.5)
+  return { x, fx }
+
 /-- Basin hopping around the local minimiser `localMin`. -/
 def basinhopping (localMin : FloatArray → MinResult) (x0 : FloatArray) (rng : Rng)
     (niter : Nat := 50) (temperature : Float := 0.1) (stepsize : Float := 0.1) :
@@ -103,19 +135,40 @@ def basinhopping (localMin : FloatArray → MinResult) (x0 : FloatArray) (rng : 
   let start := localMin x0
   let mut cur := start
   let mut best := start
-  for _ in [0:niter] do
+  let mut posStep := stepsize
+  let mut acceptedInWindow := 0
+  for iter in [0:niter] do
     let mut xt := cur.x
-    for k in [0:xt.size] do
-      let (u, r) := rng.uniform (-stepsize) stepsize
-      rng := r
-      xt := xt.set! k (xt[k]! + u)
+    if xt.size % 3 == 0 then
+      for i in [0:xt.size / 3] do
+        let (dx, r) := rng.uniform (-posStep) posStep
+        rng := r
+        let (dy, r) := rng.uniform (-posStep) posStep
+        rng := r
+        let (da, r) := rng.uniform (-4.0 * posStep) (4.0 * posStep)
+        rng := r
+        xt := xt.set! (3 * i) (xt[3 * i]! + dx)
+        xt := xt.set! (3 * i + 1) (xt[3 * i + 1]! + dy)
+        xt := xt.set! (3 * i + 2) (xt[3 * i + 2]! + da)
+    else
+      for k in [0:xt.size] do
+        let (u, r) := rng.uniform (-posStep) posStep
+        rng := r
+        xt := xt.set! k (xt[k]! + u)
     let res := localMin xt
     let (u, r) := rng.uniform01
     rng := r
     let w := Float.exp (min 0.0 (-(res.fx - cur.fx) / temperature))
     if w ≥ u then
       cur := res
+      acceptedInWindow := acceptedInWindow + 1
       if res.fx < best.fx then best := res
+    if (iter + 1) % 10 == 0 then
+      if acceptedInWindow ≤ 2 then
+        posStep := max (stepsize * 0.1) (posStep * 0.7)
+      else if acceptedInWindow ≥ 8 then
+        posStep := min (stepsize * 5.0) (posStep * 1.3)
+      acceptedInWindow := 0
   return (best, rng)
 
 end PolygonPacker
